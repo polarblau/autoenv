@@ -40,9 +40,9 @@ _autoenv_info() {
 	[ $before -gt 0 ] && printf '%*s' ${before} | tr " " "\n"
 
 	if [ -n "$NO_COLOR" ]; then
-		\printf "[autoenv] %s" "${*}"
+		printf "[autoenv] %s" "${*}"
 	else
-		\printf "\033[33m[autoenv]\033[0m %s" "${*}"
+		printf "\033[33m[autoenv]\033[0m %s" "${*}"
 	fi
 
 	[ $after -gt 0 ] && printf '%*s' ${after} | tr " " "\n"
@@ -55,9 +55,9 @@ _autoenv_info() {
 # @internal
 _autoenv_err() {
 	if [ -n "$NO_COLOR" ]; then
-		\printf "[autoenv] Error %s" "${*}" >&2
+		printf "[autoenv] Error %s" "${*}" >&2
 	else
-		\printf "\033[33m[autoenv]\033[0m \033[31mError\033[0m %s\n" "${*}" >&2
+		printf "\033[33m[autoenv]\033[0m \033[31mError\033[0m %s\n" "${*}" >&2
 	fi
 
 	return 1
@@ -79,9 +79,9 @@ _autoenv_draw_line() {
 	line=$(printf '%*s\n' ${width} | tr " " "${char}")
 
 	if [ -n "$NO_COLOR" ]; then
-		\printf "%s%s\n\n" "${text}" "$line"
+		printf "%s%s\n\n" "${text}" "$line"
 	else
-		\printf "\033[1m%s%s\033[0m\n\n" "${text}" "$line"
+		printf "\033[1m%s%s\033[0m\n\n" "${text}" "$line"
 fi
 }
 
@@ -109,41 +109,41 @@ autoenv_init() {
 	local _mountpoint _files _orderedfiles _sedregexp _pwd
 	_sedregexp='-E'
 
-	_mountpoint="$(\df -P "${PWD}" | \tail -n 1 | \awk '$0=$NF')"
+	_mountpoint="$(command df -P "${PWD}" | command tail -n 1 | command awk '$0=$NF')"
 	# Remove double slashes, see #125
-	_pwd=$(\echo "${PWD}" | \sed "${_sedregexp}" 's:/+:/:g')
+	_pwd=$(printf '%s\n' "${PWD}" | command sed "${_sedregexp}" 's:/+:/:g')
 
 	# Discover all files we need to source
 	# We do this in a subshell so we can cd/chdir
 	_files=$(
-		\command -v chdir >/dev/null 2>&1 && \chdir "${_pwd}" || builtin cd "${_pwd}"
+		command -v chdir >/dev/null 2>&1 && chdir "${_pwd}" || builtin cd "${_pwd}"
 		_hadone=''
 		while :; do
-			_file="$(\pwd -P)/${AUTOENV_ENV_FILENAME}"
+			_file="$(pwd -P)/${AUTOENV_ENV_FILENAME}"
 			if [ -f "${_file}" ]; then
 				if [ -z "${_hadone}" ]; then
-					\printf %s "${_file}"
+					printf %s "${_file}"
 					_hadone='1'
 				else
-					\printf %s "
+					printf %s "
 ${_file}"
 				fi
 			fi
-			[ "$(\pwd -P)" = "${_mountpoint}" ] && \break
-			[ "$(\pwd -P)" = "/" ] && \break
-			\command -v chdir >/dev/null 2>&1 && \chdir "$(\pwd -P)/.." || builtin cd "$(pwd -P)/.."
+			[ "$(pwd -P)" = "${_mountpoint}" ] && break
+			[ "$(pwd -P)" = "/" ] && break
+			command -v chdir >/dev/null 2>&1 && chdir "$(pwd -P)/.." || builtin cd "$(pwd -P)/.."
 		done
 	)
 
 	# ZSH: Use traditional for loop
 	if [ -n "$ZSH_VERSION" ]; then
-		if zsh_shwordsplit="$(\setopt >/dev/null 2>&1 | \command grep -q shwordsplit && \echo 1)"; then
+		if zsh_shwordsplit="$(setopt >/dev/null 2>&1 | command grep -q shwordsplit && echo 1)"; then
 			:
 		else
 			:
 		fi
 		if [ -z "${zsh_shwordsplit}" ]; then
-			\setopt shwordsplit >/dev/null 2>&1
+			setopt shwordsplit >/dev/null 2>&1
 		fi
 	fi
 
@@ -176,7 +176,7 @@ ${_orderedfiles}"
 	# ZSH: Unset shwordsplit
 	if [ -n "$ZSH_VERSION" ]; then
 		if [ -z "${zsh_shwordsplit}" ]; then
-			\unsetopt shwordsplit >/dev/null 2>&1
+			unsetopt shwordsplit >/dev/null 2>&1
 		fi
 	fi
 }
@@ -186,8 +186,8 @@ ${_orderedfiles}"
 autoenv_hashline() {
 	local _envfile _hash
 	_envfile="${1}"
-	_hash=$(autoenv_shasum "${_envfile}" | \cut -d' ' -f 1)
-	\printf '%s\n' "${_envfile}:${_hash}"
+	_hash=$(autoenv_shasum "${_envfile}" | command cut -d' ' -f 1)
+	printf '%s\n' "${_envfile}:${_hash}"
 }
 
 # @description Determines if a file is authorized to be sourced
@@ -196,9 +196,9 @@ autoenv_check_authz() {
 	local _envfile _hash
 	_envfile="${1}"
 	_hash=$(autoenv_hashline "${_envfile}")
-	\command mkdir -p -- "$(\dirname "${AUTOENV_AUTH_FILE}")"
-	\command touch -- "${AUTOENV_AUTH_FILE}"
-	\command grep -q "${_hash}" -- "${AUTOENV_AUTH_FILE}"
+	command mkdir -p -- "$(\dirname "${AUTOENV_AUTH_FILE}")"
+	command touch -- "${AUTOENV_AUTH_FILE}"
+	command grep -q "${_hash}" -- "${AUTOENV_AUTH_FILE}"
 }
 
 # @description Source an env file if is able to do so
@@ -208,17 +208,17 @@ autoenv_check_authz_and_run() {
 	_envfile="${1}"
 	if autoenv_check_authz "${_envfile}"; then
 		autoenv_source "${_envfile}"
-		\return 0
+		return 0
 	fi
 	if [ -n "${AUTOENV_ASSUME_YES}" ]; then # Don't ask for permission if "assume yes" is switched on
 		autoenv_authorize_env "${_envfile}"
 		autoenv_source "${_envfile}"
-		\return 0
+		return 0
 		fi
 	if [ -z "${MC_SID}" ]; then # Make sure mc is not running
 		_autoenv_show_file "${_envfile}"
 		_autoenv_info -n "Authorize this file? (y/N) "
-		\read -r answer
+		read -r answer
 		if [ "${answer}" = "y" ] || [ "${answer}" = "Y" ]; then
 			autoenv_authorize_env "${_envfile}"
 			autoenv_source "${_envfile}"
@@ -231,12 +231,12 @@ autoenv_check_authz_and_run() {
 autoenv_deauthorize_env() {
 	local _envfile _noclobber
 	_envfile="${1}"
-	\command cp -- "${AUTOENV_AUTH_FILE}" "${AUTOENV_AUTH_FILE}.tmp"
+	command cp -- "${AUTOENV_AUTH_FILE}" "${AUTOENV_AUTH_FILE}.tmp"
 	_noclobber="$(set +o | \command grep noclobber)"
 	set +C
-	\command grep -Gv "${_envfile}:" -- "${AUTOENV_AUTH_FILE}.tmp" > "${AUTOENV_AUTH_FILE}"
-	\eval "${_noclobber}"
-	\command rm -- "${AUTOENV_AUTH_FILE}.tmp" 2>/dev/null || :
+	command grep -Gv "${_envfile}:" -- "${AUTOENV_AUTH_FILE}.tmp" > "${AUTOENV_AUTH_FILE}"
+	eval "${_noclobber}"
+	command rm -- "${AUTOENV_AUTH_FILE}.tmp" 2>/dev/null || :
 }
 
 # @description Mark an env file as not able to be sourced
@@ -258,19 +258,19 @@ autoenv_source() {
 	AUTOENV_CUR_DIR="$(dirname "${1}")"
 	. "${1}"
 	[ "${ZSH_VERSION#*5.1}" != "${ZSH_VERSION}" ] && set +a
-	\eval "${_allexport}"
-	\unset AUTOENV_CUR_FILE AUTOENV_CUR_DIR
+	eval "${_allexport}"
+	unset AUTOENV_CUR_FILE AUTOENV_CUR_DIR
 }
 
 # @description Function to override the 'cd' builtin
 autoenv_cd() {
 	local _pwd
 	_pwd=${PWD}
-	if \command -v chdir >/dev/null 2>&1 && \chdir "${@}" || builtin cd "${@}"; then
+	if command -v chdir >/dev/null 2>&1 && \chdir "${@}" || builtin cd "${@}"; then
 		autoenv_init "${_pwd}"
-		\return 0
+		return 0
 	else
-		\return "${?}"
+		return "${?}"
 	fi
 }
 
@@ -285,25 +285,25 @@ autoenv_leave() {
 	# Discover all files we need to source
 	# We do this in a subshell so we can cd/chdir
 	_files=$(
-		\command -v chdir >/dev/null 2>&1 && \chdir "${from_dir}" || builtin cd "${from_dir}"
+		command -v chdir >/dev/null 2>&1 && chdir "${from_dir}" || builtin cd "${from_dir}"
 		_hadone=''
-		while [ "$(\pwd)" != "" ] && [[ $to_dir != $(\pwd)* ]]; do
-			_file="$(\pwd)/${AUTOENV_ENV_LEAVE_FILENAME}"
+		while [ "$(pwd)" != "" ] && [[ $to_dir != $(pwd)* ]]; do
+			_file="$(pwd)/${AUTOENV_ENV_LEAVE_FILENAME}"
 			if [ -f "${_file}" ]; then
 				if [ -z "${_hadone}" ]; then
-					\printf %s "${_file}"
+					printf %s "${_file}"
 					_hadone='1'
 				else
-					\printf %s "
+					printf %s "
 ${_file}"
 				fi
 			fi
-			\command -v chdir >/dev/null 2>&1 && \chdir "$(\pwd)/.." || builtin cd "$(pwd)/.."
+			command -v chdir >/dev/null 2>&1 && chdir "$(pwd)/.." || builtin cd "$(pwd)/.."
 		done
 	)
 
 	# ZSH: Use traditional for loop
-	zsh_shwordsplit="$(\setopt > /dev/null 2>&1 | \command grep -q shwordsplit && \echo 1)"
+	zsh_shwordsplit="$(setopt > /dev/null 2>&1 | command grep -q shwordsplit && echo 1)"
 	if [ -z "${zsh_shwordsplit}" ]; then
 		\setopt shwordsplit >/dev/null 2>&1
 	fi
