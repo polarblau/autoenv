@@ -11,6 +11,7 @@ source=("$pkgname"::'git+https://github.com/hyperupcall/autoenv.git')
 sha256sums=('SKIP')
 depends=('bash')
 optdepends=('zsh: if preferred over bash')
+install='autoenv.install'
 makedepends=('git')
 conflicts=('autoenv')
 

@@ -1,0 +1,13 @@
+post_install() {
+	cat <<EOF
+Before using autoenv, you need to add it to your '.bashrc' or '.zshrc':
+
+$ printf '%s\n' 'source /usr/share/autoenv/activate.sh' >> ~/.bashrc
+$ printf '%s\n' 'source /usr/share/autoenv/activate.sh' >> ~/.zshrc
+
+You will need to restart your shell afterwards.
+
+Note: autoenv auverrides cd. If you already do this, invoke 'autoenv_init' in
+your custom cd after sourcing 'activate.sh'.
+EOF
+}
