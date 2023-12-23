@@ -9,7 +9,7 @@ Keeping autoenv up to date depends on your installation method:
 If you installed autoenv with homebrew, run the following:
 
 ```sh
-$ brew update 'autoenv'
+$ brew update && brew upgrade autoenv
 ```
 
 ### With npm
